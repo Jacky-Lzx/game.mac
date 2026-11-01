@@ -13,6 +13,7 @@
 #include "game_version.h"   // GAME_FOLDER and TOTK_GAME_VERSION of this build (build_ipa.py's -D flags)
 #include "dmsh_chain.h"
 #include "settings_map.h"
+#include "totk_shader_contrib.h"   // totk_contrib_prune
 #import "touch_pad.h"
 #import "start_screen.h"
 
@@ -509,7 +510,10 @@ static void apply_settings(void) {
         if (removed) fprintf(stderr,"[shader-cache] removed %lu entries of earlier translation chains\n",(unsigned long)removed);
     });
     // Shaders the shared list lacks (totk_shader_contrib.h), in the Files app for players who want to send them; only the Mac asks.
-    setenv("TOTK_SHADER_CONTRIB",[docs stringByAppendingPathComponent:@"shader-list-contribution.txt"].fileSystemRepresentation,1);
+    // What this app's seed and warm lists (beside the seed: DM_NVN_SHMAP) serve leaves it first, so the Mac sends only the rest.
+    NSString *contrib = [docs stringByAppendingPathComponent:@"shader-list-contribution.txt"];
+    totk_contrib_prune(contrib, seedDir, seedDir);
+    setenv("TOTK_SHADER_CONTRIB",contrib.fileSystemRepresentation,1);
     // ... with the game and version it came from, so the Mac that sends it names them in the issue (shader_contrib_watch.py)
     setenv("TOTK_CONTRIB_GAME",GAME_FOLDER " " TOTK_GAME_VERSION,1);
     setenv("DM_NVN_SHMAP",[seedDir stringByAppendingPathComponent:@"shader_map.tsv"].fileSystemRepresentation,1);

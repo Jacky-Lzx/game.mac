@@ -24,6 +24,7 @@
 #include "../tex/nvn_deswizzle.h"
 #include "../tex/nvn_deswizzle_gpu.h"
 #include "totk_shader_rt.h"
+#include "totk_shader_contrib.h"   // totk_contrib_list_row (pso_contribute)
 #include "totk_mfx.h"
 #include "totk_mfx_up.h"
 #include "totk_taa.h"
@@ -7418,7 +7419,7 @@ static id<MTLFunction> fs_fn_fbread_slow(NvShader *fs, const int aid[], const in
    variants in the shared list (1,873 inputs taken for integers had float formats bound), each a variant of its own. An
    input whose declared type class differs from its format's is redeclared with the format's type and read back as the
    declared type with as_type, so the code sees the bits the hardware's fetch gives (Metal converts *_UI2F / *_I2F to
-   float for a float input); the variant's recorded input types no longer matter (totk_shader_rt.m deps_match). */
+   float for a float input); the variant's recorded input types no longer matter (totk_shader_contrib.h totk_deps_match). */
 static char vfmt_class(int f) {   // 'u' / 's' pure unsigned / signed integer, 'f' any other, 0 unmapped or unbound
     if (f >= 0x51 && f <= 0x68) return 'f';   // *_UI2F / *_I2F: converted to float values
     switch (vfmt(f)) {
@@ -8094,9 +8095,8 @@ static void pso_contribute(const pso_skey *sk, NSString *brec, NSString *trec) {
             for (NSString *name in @[@"pso_title.tsv", @"pso_manifest.tsv", @"pso_list.tsv"]) @autoreleasepool {   // pso_list: iOS's copy of the shared list's pipelines
                 NSString *text = dir ? [NSString stringWithContentsOfFile:[dir stringByAppendingPathComponent:name] encoding:NSUTF8StringEncoding error:nil] : nil;
                 for (NSString *line in [text componentsSeparatedByString:@"\n"]) {
-                    NSArray *f = [line componentsSeparatedByString:@"\t"];
-                    if (f.count >= 2 && [f[0] isEqual:@"R"]) [rows addObject:seen_key_str([@"R\t" stringByAppendingString:f[1]])];
-                    if ((f.count >= 4 && [f[0] isEqual:@"B"]) || (f.count >= 3 && [f[0] isEqual:@"T"])) [rows addObject:seen_key_str(line)];
+                    NSString *row = totk_contrib_list_row(line);   // as totk_contrib_prune reads the lists
+                    if (row) [rows addObject:seen_key_str(row)];
                 }
             }
             shipped = rows;
